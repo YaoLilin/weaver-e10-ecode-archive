@@ -13,11 +13,15 @@
 建议版本：10.0.2509.01
 
 ## 使用方法
+有两种方法，选其中一种即可。
+
 ### 一、最简单方法 - 使用 jar 包
+此方法快速简单，适合没有本地二开的项目。  
 下载本项目下的 `secondev-hnweaver-ecodeArchive-1.0.0.jar` 包，将它作为外部依赖部署到系统中，另外还需要引入二开公共类库，
 地址：https://github.com/YaoLilin/weaver-e10-second-dev-common ，下载公共类库的 jar 包，将它作为外部依赖部署到系统中。
 
 ### 二、将源码放入你的二开项目
+此方法适合有本地二开，以及想对源码进行修改满足扩展需求的。  
 本项目为泛微 E10 二次开发，需要自行搭建二次开发环境，下载本项目后将代码放入你的开发项目中，建议放入一个模块，打包时将该模块代码
 合并到你的 jar 包中。  
 需要添加 freemarker 依赖，gradle 依赖配置：
@@ -27,11 +31,22 @@ implementation("org.freemarker:freemarker:2.3.34")
 还需引入二开公共类库，将此类库，地址：https://github.com/YaoLilin/weaver-e10-second-dev-common ，将此项目的源码放入
 到你的项目中，或下载公共类库的 jar 包，将此 jar 包引入到你的项目。
 
+### 部署配置
+完成上面两种方式其一的部署后，需要进行如下配置：  
+
+在 `/ecode/monitor/loom/deploy/jar` 页面中,切换到配置文件编辑页签，选择二开服务，在配置文件的 `beans` 标签中插入以下文本，然后点击保存，
+之后重启二开服务
+```xml
+<dubbo:service ref="ArchivePushActionByEcode"
+interface="com.weaver.intcenter.ias.core.api.hook.EcodeInterface"
+group="ArchivePushActionGruop" />
+```
+
 ## 功能
 ### 配置功能
 #### 档案集成流程字段配置
 
-![img.png](imgs/img.png)
+![img.png](imgs/img.png)  
 - 可配置档案包元数据，可选择流程表单字段进行取值（可在归档方案中映射与过滤配置转换，对字段值进行转换），可进行必填校验
 - 可配置文件从流程字段中获取，比如正文、附件、表单页面文件，这些文件将会放入档案包中，并在元数据 xml 文件内生成文件信息。
   - 可按需配置获取文件，比如只需要获取正文，则只添加正文配置即可
@@ -40,24 +55,24 @@ implementation("org.freemarker:freemarker:2.3.34")
 - 支持对后续版本流程生效，启用后后面流程由新增版本，无需再对次流程版本进行配置
 
 #### 档案打包配置
-![img_1.png](imgs/img_1.png)
+![img_1.png](imgs/img_1.png)  
 - 可对档案包内的 xml文件名称和路径进行配置
 - 可配置 xml 文件的模板，xml 文件将按模板进行生成，并将数据注入到模板中（使用 freemarker 生成）
 - 可对每个文件类型配置文件在档案包内的存放路径
 
 #### 档案传输接口配置
-![img_2.png](imgs/img_2.png)
+![img_2.png](imgs/img_2.png)  
 可配置 FTP 服务器信息，档案包将上传到此 FTP 服务器的对应路径内（没有调用接口，因为泰坦档案只需要上传到 FTP 即可）
 
 #### 归档方案配置
 可在标准功能的档案集成 -》归档方案设置中添加归档方案，数据源中选择需要推送的流程，归档方式选择 e-code 自定义归档，映射与过滤中可配置字段转换。
 
-只有配置归档方案才会执行档案推送，档案定时推送与档案推送日志由标准功能进行。
-![img_3.png](imgs/img_3.png)
+只有配置归档方案才会执行档案推送，档案定时推送与档案推送日志由标准功能进行。  
+![img_3.png](imgs/img_3.png)  
 
 ### 档案推送结果台账
 在台账中可查看所有的档案推送记录，可查看推送结果，并可进行重新推送。
-![img_4.png](imgs/img_4.png)
+![img_4.png](imgs/img_4.png)  
 
 ### 档案系统归档结果异步反馈
 档案系统需调用 OA 接口反馈归档结果，反馈的结果会更新到归档结果台中。
