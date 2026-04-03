@@ -45,7 +45,10 @@ public abstract class AbstractArchivePackService implements ArchivePackService {
         Path packagePath = Paths.get(tempDir, packageName);
         log.info("档案包路径：{}", packagePath);
         try {
-            if (!Files.exists(packagePath)) {
+            if (Files.exists(packagePath)) {
+                // 删除原来的档案包目录
+                Files.delete(packagePath);
+            }else {
                 Files.createDirectory(packagePath);
             }
         } catch (IOException e) {
