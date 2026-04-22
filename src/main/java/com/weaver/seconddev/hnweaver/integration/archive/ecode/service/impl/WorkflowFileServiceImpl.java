@@ -195,6 +195,15 @@ public class WorkflowFileServiceImpl extends AbstractWorkflowFileService{
     private File saveFile(ArchiveDataModel.FileItem fileItem, String tempFileDir) {
         String fileId = fileItem.getFileId();
         String fileName = fileItem.getFileName();
+        int maxFileNameLength = 100;
+        if (fileName.length() > maxFileNameLength) {
+            log.info("文件名长度超过限制，fileId:{}，fileName:{},进行文件名截取", fileId, fileName);
+            String suffix = FileUtil.getSuffix(fileName);
+            String baseName = fileName.substring(0, fileName.length() - suffix.length() - 1);
+            int baseNameMaxLength = maxFileNameLength - suffix.length() - 1;
+            fileName = baseName.substring(0, baseNameMaxLength) + "." + suffix;
+            log.info("截取后的文件名:{}", fileName);
+        }
         String savePath = tempFileDir + fileName;
         if (Files.exists(Paths.get(savePath))) {
             fileName = fileId + "-" + fileName;

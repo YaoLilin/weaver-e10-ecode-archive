@@ -54,14 +54,29 @@ public class ArchivePackageUploadServiceImpl implements ArchivePackageUploadServ
             debugConnection();
             JSch jsch = new JSch();
             session = jsch.getSession(user, server, port);
-            // 设置 socket 超时
-            session.setTimeout(30000);
+            session.setTimeout(60000);
             session.setPassword(pass);
 
             setSessionConfig(session);
 
-            // 连接服务器
-            session.connect();
+            int maxConnectRetries = 3;
+            for (int i = 1; i <= maxConnectRetries; i++) {
+                try {
+                    session.connect();
+                    break;
+                } catch (JSchException e) {
+                    if (i == maxConnectRetries) {
+                        throw e;
+                    }
+                    log.warn("SFTP 连接失败（第{}/{}次），2秒后重试...", i, maxConnectRetries);
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.error("连接被中断", ie);
+                    }
+                }
+            }
 
             // 打开SFTP通道
             channel = session.openChannel("sftp");
@@ -135,21 +150,34 @@ public class ArchivePackageUploadServiceImpl implements ArchivePackageUploadServ
         connectConfig.put("PreferredAuthentications", "password,publickey");
         connectConfig.put("MaxAuthTries", "3");
         connectConfig.put("ServerAliveInterval", "60000");
-        connectConfig.put("ServerAliveCountMax", "3");
-        // 30秒连接超时
-        connectConfig.put("ConnectTimeout", "30000");
+        connectConfig.put("ServerAliveCountMax", "5");
+        connectConfig.put("ConnectTimeout", "60000");
+        connectConfig.put("socket_timeout", "60000");
         session.setConfig(connectConfig);
     }
 
     private static boolean uploadFile(File packageFile, ChannelSftp sftpChannel, String remoteFileName) {
-        try (InputStream inputStream = Files.newInputStream(packageFile.toPath())) {
-            sftpChannel.put(inputStream, remoteFileName);
-            log.info("文件上传成功，文件名：{}", remoteFileName);
-            return true;
-        } catch (IOException | SftpException ex) {
-            log.error("文件上传失败，文件名：{}", remoteFileName, ex);
-            return false;
+        int maxRetries = 3;
+        for (int i = 1; i <= maxRetries; i++) {
+            try (InputStream inputStream = Files.newInputStream(packageFile.toPath())) {
+                sftpChannel.put(inputStream, remoteFileName, ChannelSftp.OVERWRITE);
+                log.info("文件上传成功，文件名：{}", remoteFileName);
+                return true;
+            } catch (IOException | SftpException ex) {
+                log.warn("文件上传失败（第{}/{}次），文件名：{}，错误：{}", i, maxRetries, remoteFileName,
+                        ex.getMessage(), ex);
+                if (i == maxRetries) {
+                    log.error("文件上传失败，已达到最大重试次数，文件名：{}", remoteFileName, ex);
+                    return false;
+                }
+                try {
+                    Thread.sleep(2000 * i);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
+        return false;
     }
 
     private void verifyFtpConfig(String server, Integer port, String user, String pass, String remotePath) {
